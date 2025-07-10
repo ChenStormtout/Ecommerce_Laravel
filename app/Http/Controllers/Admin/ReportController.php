@@ -10,7 +10,7 @@ class ReportController extends Controller
 {
     public function index()
     {
-        // Ambil semua order yang sudah selesai
+        // Ambil semua order yang sudah sel
         $orders = Order::with('items.product')
             ->where('status', 'done')
             ->latest()
