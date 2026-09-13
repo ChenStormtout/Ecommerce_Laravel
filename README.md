@@ -1,61 +1,598 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# E-Commerce Laravel
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A web-based e-commerce application built with Laravel for managing products, customer orders, shopping carts, and basic sales reporting.
 
-## About Laravel
+The application provides separate workflows for **customers** and **administrators**, with Laravel handling routing, authentication, business logic, database operations, and server-side rendering.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Customer
 
-## Learning Laravel
+* User registration and authentication
+* Browse available products
+* Product categorization
+* Add products to cart
+* Adjust product quantity
+* Remove products from cart
+* Checkout
+* Select payment method
+* Submit orders
+* View orders and order history
+* Manage profile
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Administrator
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+* Dashboard with store summary
+* Product management
+* Category management
+* Order management
+* Order detail view
+* Update order status
+* Mark orders as completed
+* Generate invoice
+* Sales report
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Application Architecture
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+The application follows Laravel's MVC architecture. Requests are handled through Laravel routes and middleware, processed by controllers, and persisted through Eloquent models.
 
-### Premium Partners
+```mermaid
+flowchart TD
+    U[Customer / Admin] --> B[Web Browser]
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+    B --> R[Laravel Routes]
 
-## Contributing
+    R --> M[Middleware]
+    M --> C[Controllers]
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+    C --> V[Blade Views]
+    C --> E[Eloquent ORM]
 
-## Code of Conduct
+    E --> DB[(SQLite)]
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+    V --> B
 
-## Security Vulnerabilities
+    AS[Vite Assets] --> B
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Request Flow
+
+```text
+Browser
+   │
+   ▼
+Routes
+   │
+   ▼
+Middleware
+   │
+   ▼
+Controller
+   │
+   ├──────────────► Blade View
+   │
+   ▼
+Eloquent Model
+   │
+   ▼
+SQLite Database
+```
+
+---
+
+## Database Design
+
+The main transactional entities are users, products, categories, orders, and order items.
+
+```mermaid
+erDiagram
+
+    USERS ||--o{ ORDERS : places
+    CATEGORIES ||--o{ PRODUCTS : contains
+    ORDERS ||--o{ ORDER_ITEMS : contains
+    PRODUCTS ||--o{ ORDER_ITEMS : referenced_by
+
+    USERS {
+        bigint id PK
+        string name
+        string email UK
+        string password
+        string phone
+        enum role
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CATEGORIES {
+        bigint id PK
+        string name
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    PRODUCTS {
+        bigint id PK
+        string name
+        bigint category_id FK
+        text description
+        integer price
+        string image
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ORDERS {
+        bigint id PK
+        bigint user_id FK
+        string order_code UK
+        string address
+        integer total_price
+        enum payment_method
+        enum status
+        enum order_type
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ORDER_ITEMS {
+        bigint id PK
+        bigint order_id FK
+        bigint product_id FK
+        integer quantity
+        integer price
+        timestamp created_at
+        timestamp updated_at
+    }
+```
+
+### Relationships
+
+| Model      | Relationship         |
+| ---------- | -------------------- |
+| User       | Has many Orders      |
+| Category   | Has many Products    |
+| Product    | Belongs to Category  |
+| Product    | Has many Order Items |
+| Order      | Belongs to User      |
+| Order      | Has many Order Items |
+| Order Item | Belongs to Order     |
+| Order Item | Belongs to Product   |
+
+---
+
+## Order Lifecycle
+
+Orders move through a simple status workflow:
+
+```mermaid
+flowchart LR
+    A[Customer Checkout] --> B[Pending]
+    B --> C[Processing]
+    C --> D[Done]
+```
+
+The order stores:
+
+* Order code
+* Customer
+* Delivery address
+* Total price
+* Payment method
+* Order status
+* Order type
+* Order items
+
+Supported payment methods:
+
+```text
+COD
+Transfer
+QRIS
+```
+
+Supported order types:
+
+```text
+via_web
+via_wa
+```
+
+---
+
+## User Roles
+
+### Customer
+
+Customer-facing functionality is centered around browsing products and completing purchases.
+
+```text
+Login
+  │
+  ▼
+Menu
+  │
+  ▼
+Cart
+  │
+  ▼
+Checkout
+  │
+  ▼
+Order
+  │
+  ▼
+Order History
+```
+
+### Administrator
+
+The administrator workflow focuses on managing products and processing orders.
+
+```text
+Login
+  │
+  ▼
+Admin Dashboard
+  │
+  ├── Products
+  │
+  ├── Orders
+  │
+  ├── Invoice
+  │
+  └── Reports
+```
+
+---
+
+## Dashboard
+
+The admin dashboard provides a quick overview of the store, including:
+
+* Total products
+* Incoming orders
+* Total sales
+* Recent activity
+
+The product management interface also provides product statistics such as product count, average price, and active categories.
+
+---
+
+## Tech Stack
+
+| Layer                 | Technology             |
+| --------------------- | ---------------------- |
+| Backend               | PHP                    |
+| Framework             | Laravel                |
+| ORM                   | Eloquent               |
+| Frontend              | Blade                  |
+| Asset Bundler         | Vite                   |
+| Database              | SQLite                 |
+| Authentication        | Laravel Authentication |
+| Icons                 | Lucide Icons           |
+| Dependency Management | Composer / NPM         |
+| Version Control       | Git                    |
+
+---
+
+## Project Structure
+
+```text
+Ecommerce_Laravel/
+│
+├── app/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       ├── Admin/
+│   │       └── Customer/
+│   │
+│   └── Models/
+│
+├── database/
+│   ├── migrations/
+│   ├── seeders/
+│   └── database.sqlite
+│
+├── public/
+│
+├── resources/
+│   ├── css/
+│   ├── js/
+│   └── views/
+│
+├── routes/
+│   ├── web.php
+│   └── auth.php
+│
+├── storage/
+│
+├── tests/
+│
+├── artisan
+├── composer.json
+├── package.json
+├── vite.config.js
+└── README.md
+```
+
+---
+
+## Installation
+
+### Requirements
+
+Make sure the following are installed:
+
+* PHP 8.3+
+* Composer
+* Node.js and NPM
+* Git
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/ChenStormtout/Ecommerce_Laravel.git
+cd Ecommerce_Laravel
+```
+
+### 2. Install PHP dependencies
+
+```bash
+composer install
+```
+
+### 3. Configure environment
+
+Copy the example environment file:
+
+**Windows**
+
+```powershell
+copy .env.example .env
+```
+
+Generate the application key:
+
+```bash
+php artisan key:generate
+```
+
+### 4. Configure SQLite
+
+Create the SQLite database:
+
+**PowerShell**
+
+```powershell
+New-Item database\database.sqlite -ItemType File
+```
+
+Make sure the database configuration in `.env` is configured for SQLite.
+
+### 5. Run migrations
+
+```bash
+php artisan migrate
+```
+
+If you need to recreate the database during development:
+
+```bash
+php artisan migrate:fresh
+```
+
+> `migrate:fresh` removes the existing database tables and data.
+
+### 6. Install frontend dependencies
+
+```bash
+npm install
+```
+
+### 7. Build frontend assets
+
+```bash
+npm run build
+```
+
+For development:
+
+```bash
+npm run dev
+```
+
+### 8. Start Laravel
+
+```bash
+php artisan serve
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+## Development
+
+During development, Laravel and Vite can be run separately.
+
+Terminal 1:
+
+```bash
+php artisan serve
+```
+
+Terminal 2:
+
+```bash
+npm run dev
+```
+
+Vite handles the frontend assets while Laravel serves the application.
+
+---
+
+## Database Migrations
+
+The application uses Laravel migrations to define the database schema.
+
+Main tables:
+
+```text
+users
+categories
+products
+orders
+order_items
+```
+
+Additional Laravel infrastructure tables include:
+
+```text
+sessions
+cache
+cache_locks
+```
+
+Foreign-key relationships are used between the main transactional tables to maintain referential integrity.
+
+---
+
+## Product Management
+
+Administrators can manage the product catalog through the product management section.
+
+Product data includes:
+
+```text
+Name
+Category
+Description
+Price
+Image
+```
+
+Products are associated with a category through `category_id`.
+
+---
+
+## Cart & Checkout
+
+The shopping cart allows customers to select products and quantities before checkout.
+
+```mermaid
+flowchart TD
+    A[Product Catalog] --> B[Select Product]
+    B --> C[Add to Cart]
+    C --> D[Update Quantity]
+    D --> E[Checkout]
+    E --> F[Create Order]
+    F --> G[Order Confirmation]
+```
+
+Order items store the product, quantity, and price associated with each order.
+
+---
+
+## Screenshots
+
+Screenshots can be added to the repository under:
+
+```text
+screenshots/
+├── landing-page.png
+├── login.png
+├── customer-menu.png
+├── cart.png
+├── checkout.png
+├── admin-dashboard.png
+├── product-management.png
+├── order-management.png
+└── reports.png
+```
+
+Example:
+
+```markdown
+![Admin Dashboard](screenshots/admin-dashboard.png)
+```
+
+---
+
+## Technical Notes
+
+### ORM
+
+Database access is handled through Laravel Eloquent models and model relationships instead of manually writing SQL for normal application operations.
+
+For example:
+
+```text
+User
+ └── Orders
+
+Category
+ └── Products
+
+Order
+ └── Order Items
+      └── Product
+```
+
+### Database
+
+SQLite is used as the development database, making the project straightforward to run locally without requiring a separate database server.
+
+### Frontend Assets
+
+Frontend assets are managed through Vite.
+
+The application therefore requires the frontend dependency installation and asset build step before all pages can be rendered correctly.
+
+---
+
+## Possible Improvements
+
+The current architecture can be extended with:
+
+* Dedicated role-based middleware
+* More granular authorization policies
+* Payment gateway integration
+* REST API
+* Product stock management
+* Order notifications
+* Automated tests
+* More detailed sales analytics
+* Production deployment
+* Dedicated image storage
+
+---
+
+## Purpose
+
+This project was developed as a Laravel-based e-commerce application and serves as a practical implementation of:
+
+* MVC architecture
+* CRUD operations
+* Authentication
+* Middleware
+* Eloquent ORM
+* Relational database design
+* Database migrations
+* Shopping cart management
+* Order processing
+* Server-side rendering
+* Frontend asset management
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is intended for learning and portfolio purposes.
